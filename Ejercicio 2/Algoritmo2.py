@@ -14,29 +14,29 @@ def calculate_file_hash(file_path, hash_algorithm=hashlib.sha256()):
             hash_algorithm.update(chunk)
     return hash_algorithm.digest()
 
-AP = rsa.generate_AP(
+private_key = rsa.generate_private_key(
     public_exponent=65537,
     key_size=2048,
     backend=default_backend()
 )
 
-public_key = AP.public_key()
+public_key = private_key.public_key()
 
-pem_AP = AP.private_bytes(
+pem_private_key = private_key.private_bytes(
     encoding=serialization.Encoding.PEM,
     format=serialization.PrivateFormat.TraditionalOpenSSL,
     encryption_algorithm=serialization.NoEncryption()
 )
 
-AP_path = "AP.pem"
-with open(AP_path, "wb") as AP_file:
-    AP_file.write(pem_AP)
+private_key_path = "private_key.pem"
+with open(private_key_path, "wb") as private_key_file:
+    private_key_file.write(pem_private_key)
 
 hash_result = calculate_file_hash(file_path)
 print(f"The SHA-256 hash of {file_path} is: {hash_result.hex()}","\n")
 
 # Firmar el hash del documento con la llave privada
-firma = AP.sign(
+signature = private_key.sign(
     hash_result,
     padding.PSS(
         mgf=padding.MGF1(hashes.SHA256()),
@@ -44,12 +44,12 @@ firma = AP.sign(
     ),
     hashes.SHA256()
 )
-print("Firma generada por Alice:", firma.hex(),"\n")
+print("Firma generada por Alice:", signature.hex(),"\n")
 
 # Desencriptar la firma utilizando la clave pública
 try:
     public_key.verify(
-        firma,
+        signature,
         hash_result,
         padding.PSS(
             mgf=padding.MGF1(hashes.SHA256()),
@@ -57,34 +57,48 @@ try:
         ),
         hashes.SHA256()
     )
-    print("El documento es firmado por Alice. El hash del documento coincide con el hash desencriptado.")
-except Invalidfirma:
-    print("La firma es incorrectA. El hash del documento no coincide el desincriptado. \n")
+    print("El documento fue firmado por Alice. El hash del documento coincide con el hash desencriptado.")
+except InvalidSignature:
+    print("La firma no es válida. El hash del documento no coincide con el hash desencriptado. \n")
 
-ac_AP = rsa.generate_AP(
+ac_private_key = rsa.generate_private_key(
     public_exponent=65537,
     key_size=2048,
     backend=default_backend()
 )
 
-ac_public_key = ac_AP.public_key()
+ac_public_key = ac_private_key.public_key()
 
-ac_AP = ac_AP.private_bytes(
+pem_ac_private_key = ac_private_key.private_bytes(
     encoding=serialization.Encoding.PEM,
     format=serialization.PrivateFormat.TraditionalOpenSSL,
     encryption_algorithm=serialization.NoEncryption()
 )
 
-ac_AP_path = "ac_AP.pem"
-with open(ac_AP_path, "wb") as ac_AP_file:
-    ac_AP_file.write(ac_AP)
+ac_private_key_path = "ac_private_key.pem"
+with open(ac_private_key_path, "wb") as ac_private_key_file:
+    ac_private_key_file.write(pem_ac_private_key)
 
+ac_signature = ac_private_key.sign(
+    hash_result,
+    padding.PSS(
+        mgf=padding.MGF1(hashes.SHA256()),
+        salt_length=padding.PSS.MAX_LENGTH
+    ),
+    hashes.SHA256()
+)
+print("Firma generada por la AC:", ac_signature.hex(),"\n")
+
+ac_private_key_path = "ac_private_key.pem"
+with open(ac_private_key_path, "wb") as ac_private_key_file:
+    ac_private_key_file.write(pem_ac_private_key)
+    
 # Calcular el hash del archivo NDA
 hash_result = calculate_file_hash(file_path)
 print(f"The SHA-256 hash of {file_path} is: {hash_result.hex()}","\n")
 
 # Firmar el hash del documento con la llave privada de la AC
-AC_firma = ac_AP.sign(
+ac_signature = ac_private_key.sign(
     hash_result,
     padding.PSS(
         mgf=padding.MGF1(hashes.SHA256()),
@@ -92,31 +106,4 @@ AC_firma = ac_AP.sign(
     ),
     hashes.SHA256()
 )
-print("La firma generada por la AC es:", AC_firma.hex(),"\n")
-
-AC_firma = ac_AP.sign(
-    hash_result,
-    padding.PSS(
-        mgf=padding.MGF1(hashes.SHA256()),
-        salt_length=padding.PSS.MAX_LENGTH
-    ),
-    hashes.SHA256()
-)
-print("La firma generada por la AC es:", AC_firma.hex(),"\n")
-
-# Desencriptar la firma utilizando la clave pública de la AC
-try:
-    # Verificar la firma
-    ac_public_key.verify(
-        AC_firma,
-        hash_result,
-        padding.PSS(
-            mgf=padding.MGF1(hashes.SHA256()),
-            salt_length=padding.PSS.MAX_LENGTH
-        ),
-        hashes.SHA256()
-    )
-    print("AC confirma que este documento es de Alice. El hash del documento coincide con el desincriptado.")
-except Invalidfirma:
-    print("La firma de la AC no coincide. El hash del documento no coincide desincriptado.")
-    
+print("Firma generada por la AC:", ac_signature.hex(),"\n")
