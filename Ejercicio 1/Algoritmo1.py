@@ -19,11 +19,11 @@ d = pow(e, -1, phi)
 
 # Definir la llave pública y la llave privada
 public_key = (e, n)
-private_key = (d, n)
+AP = (d, n)
 print("La llave publica: ")
 print(public_key)
 print("La llave privada: ")
-print(private_key)
+print(AP)
 
 # El mensaje Original
 M = ''.join(random.choices(string.ascii_letters + string.digits, k=1050))
@@ -39,7 +39,7 @@ print("Mensajes cifrados enviados por parte de llave publica de Bob:")
 print(encrypted_parts)
 
 # Descifrar cada parte del mensaje con la llave privada de Bob
-decrypted_parts = [long_to_bytes(pow(part, private_key[0], private_key[1])) for part in encrypted_parts]
+decrypted_parts = [long_to_bytes(pow(part, AP[0], AP[1])) for part in encrypted_parts]
 print("Mensajes descifrados")
 print(decrypted_parts)
 
